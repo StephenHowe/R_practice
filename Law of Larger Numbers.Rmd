@@ -1,0 +1,56 @@
+---
+title: "Law of Large Numbers"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+# print start time of experiment
+Sys.time()
+
+# set number of tosses and the interval for plotting
+tosses <- 1000000
+intseq <- 100
+
+# create a random number between 0 and 1 for each toss
+randnum <- runif(1:tosses)
+
+# bucket each random number into either heads or tail. 1 = tails
+outcomes <- ifelse(randnum > 0.5, 1, 0)
+
+# print the outcomes
+# outcomes
+
+#find the empirical probability for our trial and print result
+#empprob <- sum(outcomes)/tosses
+empprob <- mean(outcomes)
+empprob
+
+#cumulatively sum all th outcomes
+c.outcomes <- cumsum(outcomes)
+
+#create sequence of intervals to be used for plotting and capture the values of the 
+#cumulative outcomes at each of those intervals
+plot.bucket <- seq(from = 10, to = tosses, by = intseq)
+#plot.bucket <- log(seq(from = 10, to = tosses, by = intseq),10)
+plot.bucket.data <- c.outcomes[plot.bucket]/plot.bucket
+
+#plot coin toss results against intervals
+plot(plot.bucket, plot.bucket.data, type = "l", log="x", col="blue", ann = FALSE)
+title(main = "Empirical Probability of Random Coin Toss", xlab = "Number of Tosses", ylab = "Cumulative Probability")
+#draw horizontal line at .50 for theoretical probability
+abline(a = 0.5, b = 0, col = "red")
+
+Sys.time()
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
