@@ -1,0 +1,91 @@
+---
+title: "Text Mining with R"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+## Getting Text to Mine from Project Gutenberg
+
+```{r}
+# load the our libraries
+library(gutenbergr)
+library(dplyr)
+library(stringr)
+
+gutenberg_metadata #this pulls in all the metadata but there may be non-English text and works without downloadable files
+
+# this function will filter for English and works with available downloadable text
+# here we are creating a tiny dataframe for the works of Nietzsche
+nietzsche_works <- gutenberg_works(str_detect(author, "Nietzsche"))
+nietzsche_works
+
+#download a subset of works for this analysis
+nietzsche_doc <- gutenberg_download(c(1998,4363,19322,38145,51356,51548))
+```
+
+Time to make a tidy dataframe!
+```{r}
+tidy_nietzsche <- nietzsche_doc %>%
+  unnest_tokens(word, text) %>%   #word is my output column, text is the input column from the nietzsche_doc dataframe
+  anti_join(stop_words)
+
+# count the words, sort by most frequent
+tidy_nietzsche %>%
+  count(word, sort = TRUE)
+
+# plot a histogram
+library(ggplot2)
+
+tidy_nietzsche %>%
+  count(word, sort = TRUE) %>%
+  filter(n > 300) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+```
+
+## Sentiment Analysis of Nietzsche
+
+```{r}
+# First, pull in Nietzsche's books
+
+nietzsche_books <- gutenberg_download(c(1998,4363,19322,38145,51356,51548)) %>%
+  group_by(gutenberg_id) %>%
+  mutate(linenumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]", 
+                                                 ignore_case = TRUE)))) %>%
+  ungroup() %>%
+  unnest_tokens(word, text)
+
+# pull in the NRC sentiment list
+nrcjoy <- get_sentiments("nrc") %>% 
+  filter(sentiment == "joy")
+
+nietzsche_books %>%
+  filter(gutenberg_id == "1998") %>%
+  inner_join(nrcjoy) %>%
+  count(word, sort = TRUE)
+```
+
+Let's do something fancier. The flow of positive and negative in Nietzsce's selected works:
+
+```{r}
+library(tidyr)
+
+nietzschesentiment <- nietzsche_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(gutenberg_id, index = linenumber %/% 80, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+library(ggplot2)
+
+ggplot(nietzschesentiment, aes(index, sentiment, fill = gutenberg_id)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~gutenberg_id, ncol = 2, scales = "free_x")
+
+```
+
